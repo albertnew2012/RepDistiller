@@ -118,3 +118,5 @@ venv.bak/
 
 
 !save/models/resnet32x4_vanilla/ckpt_epoch_240.pth
+!save/student_model/S:resnet8x4_T:resnet32x4_cifar100_kd_r:0.1_a:0.9_b:0.0_debug/ckpt_epoch_40.pth
+!save/student_model/S:resnet8x4_T:resnet32x4_cifar100_kd_r:0.1_a:0.9_b:0.0_debug/ckpt_epoch_80.pth

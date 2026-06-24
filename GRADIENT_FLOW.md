@@ -362,3 +362,59 @@ They correlate early in training (you must move to learn) but **decouple** later
 
 A single backward pass can only tell you how much a layer is *about to move* — not
 how much it has *learned*.
+
+---
+
+## 11. Measuring real learning: `checkpoint_drift.py`
+
+A single backward pass cannot measure learning (section 10). The companion tool
+[`checkpoint_drift.py`](checkpoint_drift.py) does the thing that actually can:
+it compares two saved checkpoints and reports, per stage, the **cumulative
+relative drift**:
+
+$$
+\text{relative drift}(\text{stage}) = \frac{\lVert W_{\text{after}} - W_{\text{before}}\rVert}{\lVert W_{\text{before}}\rVert}
+$$
+
+Run it:
+
+```bash
+CKDIR="save/student_model/S:resnet8x4_T:resnet32x4_cifar100_kd_r:0.1_a:0.9_b:0.0_debug"
+python3 checkpoint_drift.py --before "$CKDIR/ckpt_epoch_40.pth" \
+                            --after  "$CKDIR/ckpt_epoch_80.pth"
+```
+
+Example output (epoch 40 -> 80):
+
+```
+RELATIVE DRIFT   ||W_after - W_before|| / ||W_before||
+conv1    | #################################                0.304
+layer1   | #########################################        0.372
+layer2   | ##########################################       0.385
+layer3   | ################################################ 0.439
+fc       | #######################################          0.353
+
+==> validation accuracy: 51.33% -> 55.07%   (delta +3.74%)
+```
+
+**Why this is the capstone:**
+
+1. **The profile is EVEN.** Every stage moved 30-44% of its own weight magnitude.
+   The whole network learned roughly equally.
+2. **`fc` is NOT the biggest mover** — `layer3` (0.44) is; `fc` (0.35) is mid-pack.
+   The single-step `fc` dominance fully inverts once you measure cumulative,
+   relative change. This is the final, direct rebuttal to "only fc learns."
+3. **Absolute vs. relative.** The tool also prints absolute drift, where
+   `layer2`/`layer3` look largest simply because they have *more parameters*.
+   Dividing by $\lVert W_{\text{before}}\rVert$ removes that size bias.
+4. **Movement + accuracy = learning.** The weights moved (drift bars) AND the
+   accuracy rose +3.74% (external evidence of *good* movement). Both halves
+   together prove learning, not mere movement.
+
+### The three complementary tools
+
+| Tool | Question | Time scope |
+|---|---|---|
+| `visualize_grad_flow.py` charts 1-2 | How does the gradient signal flow right now? | one step |
+| `visualize_grad_flow.py` chart 3 | What fraction is each layer *about to* move? | one step |
+| `checkpoint_drift.py` | How much did each layer *actually* learn? | between checkpoints |
