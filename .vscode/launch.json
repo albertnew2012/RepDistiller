@@ -1,0 +1,102 @@
+{
+    // Debug configurations for resnet32x4 (teacher) -> resnet8x4 (student) distillation.
+    // num_workers is set to 0 so breakpoints inside the data pipeline / training loop
+    // are hit reliably (multiprocessing data loaders detach from the debugger).
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Distill: KD (r32x4 -> r8x4)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/train_student.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true,
+            "stopOnEntry": true,
+            "args": [
+                "--path_t", "./save/models/resnet32x4_vanilla/ckpt_epoch_240.pth",
+                "--distill", "kd",
+                "--model_s", "resnet8x4",
+                "-r", "0.1",
+                "-a", "0.9",
+                "-b", "0",
+                "--trial", "debug",
+                "--num_workers", "0"
+            ]
+        },
+        {
+            "name": "Distill: CRD (r32x4 -> r8x4)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/train_student.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true,
+            "stopOnEntry": true,
+            "args": [
+                "--path_t", "./save/models/resnet32x4_vanilla/ckpt_epoch_240.pth",
+                "--distill", "crd",
+                "--model_s", "resnet8x4",
+                "-a", "0",
+                "-b", "0.8",
+                "--trial", "debug",
+                "--num_workers", "0"
+            ]
+        },
+        {
+            "name": "Distill: CRD+KD (r32x4 -> r8x4)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/train_student.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true,
+            "stopOnEntry": true,
+            "args": [
+                "--path_t", "./save/models/resnet32x4_vanilla/ckpt_epoch_240.pth",
+                "--distill", "crd",
+                "--model_s", "resnet8x4",
+                "-a", "1",
+                "-b", "0.8",
+                "--trial", "debug",
+                "--num_workers", "0"
+            ]
+        },
+        {
+            "name": "Distill: KD quick (1 epoch, fast)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/train_student.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true,
+            "args": [
+                "--path_t", "./save/models/resnet32x4_vanilla/ckpt_epoch_240.pth",
+                "--distill", "kd",
+                "--model_s", "resnet8x4",
+                "-r", "0.1",
+                "-a", "0.9",
+                "-b", "0",
+                "--trial", "debug",
+                "--num_workers", "0",
+                "--epochs", "1",
+                "--print_freq", "10"
+            ]
+        },
+        {
+            "name": "Visualize grad flow (trained student)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/visualize_grad_flow.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true,
+            "stopOnEntry": true,
+            "args": [
+                "-r", "0.1",
+                "-a", "0.9",
+                "--path_s", "./save/student_model/S:resnet8x4_T:resnet32x4_cifar100_kd_r:0.1_a:0.9_b:0.0_debug/resnet8x4_best.pth"
+            ]
+        }
+    ]
+}

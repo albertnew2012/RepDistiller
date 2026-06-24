@@ -9,11 +9,17 @@ import argparse
 import socket
 import time
 
-import tensorboard_logger as tb_logger
+# NOTE: torch (and its Triton backend) must be imported BEFORE tensorboard_logger,
+# which pulls in TensorFlow. If TensorFlow is loaded first, torch's lazy Triton import
+# segfaults later during the forward pass. Importing torch._dynamo here warms up Triton
+# before TensorFlow is ever loaded.
 import torch
+import torch._dynamo  # noqa: F401  warm up Triton before TensorFlow
 import torch.optim as optim
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
+
+import tensorboard_logger as tb_logger
 
 
 from models import model_dict
@@ -135,7 +141,10 @@ def load_teacher(model_path, n_cls):
     print('==> loading teacher model')
     model_t = get_teacher_name(model_path)
     model = model_dict[model_t](num_classes=n_cls)
-    model.load_state_dict(torch.load(model_path)['model'])
+    # weights_only=False: these checkpoints store numpy scalars (e.g. accuracy),
+    # which the PyTorch 2.6+ default (weights_only=True) refuses to unpickle.
+    # The teacher checkpoints come from a trusted source, so this is safe here.
+    model.load_state_dict(torch.load(model_path, weights_only=False)['model'])
     print('==> done')
     return model
 

@@ -5,11 +5,17 @@ import argparse
 import socket
 import time
 
-import tensorboard_logger as tb_logger
+# NOTE: torch (and its Triton backend) must be imported BEFORE tensorboard_logger,
+# which pulls in TensorFlow. If TensorFlow is loaded first, torch's lazy Triton import
+# segfaults later during the forward pass. Importing torch._dynamo here warms up Triton
+# before TensorFlow is ever loaded.
 import torch
+import torch._dynamo  # noqa: F401  warm up Triton before TensorFlow
 import torch.optim as optim
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
+
+import tensorboard_logger as tb_logger
 
 from models import model_dict
 
